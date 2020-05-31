@@ -18,6 +18,7 @@ default_config = {
     'LOG_DIR': './log'
 }
 PARSE_ERROR_THRESHOLD = 0.5
+DEFAULT_CONFIG_PATH = 'log_analyzer_config.json'
 LogProperties = namedtuple(
     'LogProperties',
     ['log_path', 'log_date', 'file_extension']
@@ -25,7 +26,18 @@ LogProperties = namedtuple(
 
 
 def get_console_arguments() -> argparse.Namespace:
-    pass
+    """Process the script arguments."""
+    argument_parser = argparse.ArgumentParser()
+    default_config_help = f'Default: {DEFAULT_CONFIG_PATH}'
+    argument_parser.add_argument(
+        '--config',
+        nargs='?',
+        const=DEFAULT_CONFIG_PATH,
+        default=None,
+        help=f'A path to a script configuration file. {default_config_help}',
+        type=str
+    )
+    return argument_parser.parse_args()
 
 
 def get_configuration(
