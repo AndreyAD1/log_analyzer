@@ -9,3 +9,5 @@ __pycache__/
 *.log-*
 # Report files
 report-*
+# Configuration file
+config.json

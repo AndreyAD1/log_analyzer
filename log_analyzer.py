@@ -9,8 +9,10 @@
 
 import argparse
 from collections import namedtuple
+import json
+import logging
 import sys
-from typing import List, Mapping, Union
+from typing import Any, List, Mapping, Union
 
 default_config = {
     'REPORT_SIZE': 1000,
@@ -41,17 +43,28 @@ def get_console_arguments() -> argparse.Namespace:
 
 
 def get_configuration(
-        filepath: str,
-        default_config: Mapping[str, Union[str, int]]
-) -> Mapping[str, Union[str, int]]:
+        input_filepath: str or None,
+        default_configuration: Mapping[str, Union[str, int]]
+) -> Mapping[str, Any] or None:
     """
-    Вернуть конфигурацию скрипта.
+    Return the script configuration.
 
-    :param filepath:
-    :param default_config:
-    :return:
+    :param input_filepath: a path to configuration file;
+    :param default_configuration: a dict containing default script parameters;
+    :return: a dict {config_param_name: config_param_value, ...}.
     """
-    pass
+    custom_configuration = {}
+
+    if input_filepath is not None:
+        try:
+            with open(input_filepath) as config_file:
+                custom_configuration = json.load(config_file)
+        except OSError:
+            logging.error(f'Invalid configuration file path: {input_filepath}')
+            return None
+
+    configuration = {**default_configuration, **custom_configuration}
+    return configuration
 
 
 def get_log_properties(log_dir_path: str) -> LogProperties:
@@ -96,6 +109,7 @@ def render_report(statistics, report_dir, log_date, report_size):
 def main():
     console_arguments = get_console_arguments()
     config_file_path = console_arguments.config
+
     configuration = get_configuration(config_file_path, default_config)
     if not configuration:
         sys.exit(f'Invalid configuration file {config_file_path}')
