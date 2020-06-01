@@ -9,8 +9,11 @@
 
 import argparse
 from collections import namedtuple
+from datetime import datetime
 import json
 import logging
+import os
+from os.path import splitext
 import sys
 from typing import Any, List, Mapping, Union
 
@@ -67,13 +70,53 @@ def get_configuration(
     return configuration
 
 
-def get_log_properties(log_dir_path: str) -> LogProperties:
-    """
-
-    :param log_dir_path:
-    :return:
-    """
+def verify_log_file(file_name: str) -> bool:
     pass
+
+
+def get_log_date(file_name: str) -> datetime:
+    pass
+
+
+def get_log_properties(log_dir_path: str) -> LogProperties or None:
+    """
+    Return the properties of new log file or None if no log file found.
+
+    :param log_dir_path: the path to directory where log file should be;
+    :return: namedtuple containing a log file path, a log date and
+    a log file extension.
+    """
+    err_msg = None
+    if not os.path.exists(log_dir_path):
+        err_msg = f'Can not find the directory {log_dir_path}.'
+
+    if not os.path.isdir(log_dir_path):
+        err_msg = f'The entered path {log_dir_path} is not a directory path.'
+
+    if err_msg:
+        logging.error(err_msg)
+        return
+
+    newest_log_path = None
+    log_date = datetime(1, 1, 1)
+    for path, _, file_names in os.walk(log_dir_path):
+        for file_name in file_names:
+            file_is_valid_log = verify_log_file(file_name)
+            if not file_is_valid_log:
+                continue
+
+            file_log_date = get_log_date(file_name)
+            if file_log_date > log_date:
+                log_date = file_log_date
+                newest_log_path = os.path.join(path, file_name)
+
+    if newest_log_path is None:
+        return
+
+    # TODO check if newest log file had already been processed.
+    _, log_extension = splitext(newest_log_path)
+    log_properties = LogProperties(newest_log_path, log_date, log_extension)
+    return log_properties
 
 
 def get_request_times_per_url(
