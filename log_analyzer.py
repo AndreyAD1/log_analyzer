@@ -82,9 +82,10 @@ def get_log_properties(log_dir_path: str) -> LogProperties or None:
     """
     Return the properties of new log file or None if no log file found.
 
-    :param log_dir_path: the path to directory where log file should be;
+    :param log_dir_path: a directory to search a log file;
     :return: namedtuple containing a log file path, a log date and
-    a log file extension.
+    a log file extension. Function returns None if it found no valid log file
+    or found log file had been already processed.
     """
     err_msg = None
     if not os.path.exists(log_dir_path):
