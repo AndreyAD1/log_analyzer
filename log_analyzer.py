@@ -112,6 +112,7 @@ def get_log_properties(log_dir_path: str) -> LogProperties or None:
                 newest_log_path = os.path.join(path, file_name)
 
     if newest_log_path is None:
+        logging.info(f'Do not find a suitable log file in {log_dir_path}.')
         return
 
     # TODO check if newest log file had already been processed.
