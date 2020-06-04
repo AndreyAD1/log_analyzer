@@ -9,14 +9,14 @@
 
 import argparse
 from collections import namedtuple
-from datetime import datetime, date
+from datetime import date
 import json
 import logging
 import os
 from os.path import splitext
 import re
 import sys
-from typing import Any, List, Mapping, Union
+from typing import Any, List, Mapping, Tuple, Union
 
 default_config = {
     'REPORT_SIZE': 1000,
@@ -29,6 +29,7 @@ LogProperties = namedtuple(
     'LogProperties',
     ['log_path', 'log_date', 'file_extension']
 )
+REPORT_NAME_TEMPLATE = 'report-{}.{}.{}.html'
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -72,44 +73,39 @@ def get_configuration(
     return configuration
 
 
-def get_log_date(file_name: str) -> datetime:
-    pass
-
-
-def search_in_reports(report_dir_path: str, dat: date) -> bool:
-    pass
-
-
-def get_log_properties(
-        log_dir_path: str,
-        report_dir_path: str
-) -> LogProperties or None:
+def verify_directory_path(directory_path: str) -> bool:
     """
-    Return the properties of new log file or None if no log file found.
 
-    :param log_dir_path: a directory to search a log file;
-    :param report_dir_path: a directory containing the script reports;
-    :return: namedtuple containing a log file path, a log date and
-    a log file extension. Function returns None if it found no valid log file
-    or found a log file which had been already processed.
+    :param directory_path:
+    :return:
     """
-    err_msg = None
-    if not os.path.exists(log_dir_path):
-        err_msg = f'Can not find the directory {log_dir_path}.'
+    err_msg = ''
+    if not os.path.exists(directory_path):
+        err_msg = f'Can not find the directory {directory_path}.'
 
-    if not os.path.isdir(log_dir_path):
-        err_msg = f'The entered path {log_dir_path} is not a directory path.'
+    if not os.path.isdir(directory_path):
+        err_msg = f'The entered path {directory_path} is not a directory path.'
 
     if err_msg:
         logging.error(err_msg)
-        return
 
+    return not bool(err_msg)
+
+
+def get_new_log_path_and_date(
+        direcrory_path: str
+) -> Tuple[str or None, date or None]:
+    """
+
+    :param direcrory_path:
+    :return:
+    """
     log_pattern = re.compile(
         '(?<=^nginx-access-ui\.log-)(20\d{2})(\d{2})(\d{2})(?=$|\.gzip)'
     )
     newest_log_path = None
     log_date = date(1, 1, 1)
-    for path, _, file_names in os.walk(log_dir_path):
+    for path, _, file_names in os.walk(direcrory_path):
         for file_name in file_names:
             log_date_match = log_pattern.search(file_name)
             if not log_date_match:
@@ -125,17 +121,58 @@ def get_log_properties(
                 log_date = file_log_date
                 newest_log_path = os.path.join(path, file_name)
 
+    log_date = log_date if newest_log_path else None
+    return newest_log_path, log_date
+
+
+def search_in_reports(report_dir_path: str, log_date: date) -> bool or None:
+    """
+
+    :param report_dir_path:
+    :param log_date:
+    :return:
+    """
+    expected_report_name = REPORT_NAME_TEMPLATE.format(
+        log_date.year,
+        log_date.month,
+        log_date.day
+    )
+    for path, _, file_names in os.walk(report_dir_path):
+        for file_name in file_names:
+            if file_name == expected_report_name:
+                return True
+
+    return False
+
+
+def get_log_properties(
+        log_dir_path: str,
+        report_dir_path: str
+) -> LogProperties or None:
+    """
+    Return the properties of new log file or None if no log file found.
+
+    :param log_dir_path: a directory to search a log file;
+    :param report_dir_path: a directory containing the script reports;
+    :return: namedtuple containing a log file path, a log date and
+    a log file extension. Function returns None if it found no valid log file
+    or found a log file which had been already processed.
+    """
+
+    newest_log_path, log_date = get_new_log_path_and_date(log_dir_path)
     report_is_ready = False
     if newest_log_path:
         report_is_ready = search_in_reports(report_dir_path, log_date)
 
-    if report_is_ready or not newest_log_path:
+    unprocessed_log_is_found = newest_log_path and not report_is_ready
+    if unprocessed_log_is_found:
+        logging.info(f'Find the log to process {newest_log_path}')
+        _, log_ext = splitext(newest_log_path)
+        log_properties = LogProperties(newest_log_path, log_date, log_ext)
+    else:
         logging.info(f'Do not find a suitable log file in {log_dir_path}.')
-        return
+        log_properties = None
 
-    _, log_extension = splitext(newest_log_path)
-    log_properties = LogProperties(newest_log_path, log_date, log_extension)
-    logging.info(f'Find the log to process {newest_log_path}')
     return log_properties
 
 
@@ -176,6 +213,11 @@ def main():
     configuration = get_configuration(config_file_path, default_config)
     if not configuration:
         sys.exit(f'Invalid configuration file {config_file_path}')
+
+    for dir_path in (configuration['LOG_DIR'], configuration['REPORT_DIR']):
+        dir_path_is_valid = verify_directory_path(dir_path)
+        if not dir_path_is_valid:
+            sys.exit(f'The invalid path in the configuration: {dir_path}.')
 
     log_properties = get_log_properties(
         configuration['LOG_DIR'],
