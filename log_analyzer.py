@@ -137,12 +137,12 @@ def search_in_reports(report_dir_path: str, log_date: date) -> bool or None:
         log_date.month,
         log_date.day
     )
-    for path, _, file_names in os.walk(report_dir_path):
-        for file_name in file_names:
-            if file_name == expected_report_name:
-                return True
-
-    return False
+    expected_report_path = os.path.join(report_dir_path, expected_report_name)
+    path_exists = os.path.exists(expected_report_path)
+    report_is_ready = False
+    if path_exists:
+        report_is_ready = os.path.isfile(expected_report_path)
+    return report_is_ready
 
 
 def get_log_properties(
