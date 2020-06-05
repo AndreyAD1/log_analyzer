@@ -8,8 +8,9 @@
 #                     '$request_time';
 
 import argparse
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from datetime import date
+import gzip
 import json
 import logging
 import os
@@ -30,6 +31,7 @@ LogProperties = namedtuple(
     ['log_path', 'log_date', 'file_extension']
 )
 REPORT_NAME_TEMPLATE = 'report-{}.{}.{}.html'
+SPLITTED_LINE_LENGTH = 16
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -94,14 +96,14 @@ def verify_directory_path(directory_path: str) -> bool:
 
 def get_new_log_path_and_date(
         direcrory_path: str
-) -> Tuple[str or None, date or None]:
+) -> Tuple[str, str] or Tuple[None, None]:
     """
 
     :param direcrory_path:
     :return:
     """
     log_pattern = re.compile(
-        '(?<=^nginx-access-ui\.log-)(20\d{2})(\d{2})(\d{2})(?=$|\.gzip)'
+        '(?<=^nginx-access-ui\.log-)(20\d{2})(\d{2})(\d{2})(?=$|\.gz)'
     )
     newest_log_path = None
     log_date = date(1, 1, 1)
@@ -180,7 +182,7 @@ def get_request_times_per_url(
         log_path: str,
         file_extension: str,
         parse_error_threshold: float
-) -> Mapping[str, List[float]]:
+) -> Mapping[str, List[float]] or None:
     """
 
     :param log_path:
@@ -188,7 +190,28 @@ def get_request_times_per_url(
     :param parse_error_threshold:
     :return:
     """
-    pass
+    request_times_per_url = defaultdict(list)
+    read_line_number = 0
+    parsing_error_number = 0
+    log_file_reader = gzip.open if file_extension else open
+    with log_file_reader(log_path, 'r') as log_file:
+        for line in log_file:
+            read_line_number += 1
+            splitted_line = line.split()
+            if len(splitted_line) != SPLITTED_LINE_LENGTH:
+                logging.error('Parsing error. Invalid line: {}')
+                parsing_error_number += 1
+                continue
+
+            url, request_time = splitted_line[6], splitted_line[-1]
+            request_times_per_url[url].append(request_time)
+
+    # TODO consider the float specific features
+    error_ratio = parsing_error_number / read_line_number
+    too_many_errors = error_ratio > parse_error_threshold
+    req_times_per_url = request_times_per_url if not too_many_errors else None
+
+    return req_times_per_url
 
 
 def get_statistics(
