@@ -31,7 +31,7 @@ LogProperties = namedtuple(
     ['log_path', 'log_date', 'file_extension']
 )
 REPORT_NAME_TEMPLATE = 'report-{}.{}.{}.html'
-SPLITTED_LINE_LENGTH = 16
+SPLITTED_LINE_LENGTH = 18
 logging.basicConfig(level=logging.DEBUG)
 
 
@@ -193,18 +193,24 @@ def get_request_times_per_url(
     request_times_per_url = defaultdict(list)
     read_line_number = 0
     parsing_error_number = 0
-    log_file_reader = gzip.open if file_extension else open
+    url_pattern = re.compile('(?<=\s)(\S+)(?= HTTP/1.)')
+    request_time_pattern = re.compile('\S+$')
+    log_file_reader = gzip.open if file_extension == 'gz' else open
     with log_file_reader(log_path, 'r') as log_file:
         for line in log_file:
             read_line_number += 1
-            splitted_line = line.split()
-            if len(splitted_line) != SPLITTED_LINE_LENGTH:
-                logging.error('Parsing error. Invalid line: {}')
+            url_match = url_pattern.search(line)
+            req_time_match = request_time_pattern.search(line)
+            url = None if url_match is None else url_match.group()
+            req_time = None if req_time_match is None else req_time_match.group()
+
+            if not url or not req_time:
+                err_msg = 'Parsing error. Invalid line with number {}: {}'
+                logging.error(err_msg.format(read_line_number, line))
                 parsing_error_number += 1
                 continue
 
-            url, request_time = splitted_line[6], splitted_line[-1]
-            request_times_per_url[url].append(request_time)
+            request_times_per_url[url].append(req_time)
 
     # TODO consider the float specific features
     error_ratio = parsing_error_number / read_line_number
