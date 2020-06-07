@@ -273,8 +273,8 @@ def get_statistics(
                 url_info['count']
             )
 
-    if not log_note_number:
-        logging.error(f'No notes in the file: {log_path}')
+    if not any([log_note_number, total_request_number, total_request_time]):
+        logging.error(f'Could not parse any request in the file: {log_path}')
         return
 
     error_ratio = error_number / log_note_number
@@ -283,6 +283,10 @@ def get_statistics(
         err_ratio_msg = f'Errors per log lines ratio is {error_ratio}'
         logging.error(f'Too many parsing errors. {err_ratio_msg}')
         return
+
+    for url, statistics in statistics_per_url.items():
+        statistics['count_perc'] = statistics['count'] / total_request_number
+        statistics['time_perc'] = statistics['time_sum'] / total_request_time
 
     return statistics_per_url
 
