@@ -16,6 +16,7 @@ import logging
 import os
 from os.path import splitext
 import re
+from statistics import mean, median
 import sys
 from typing import Any, List, Mapping, Tuple, Union
 
@@ -178,21 +179,17 @@ def get_log_properties(
     return log_properties
 
 
-def get_request_times_per_url(
+def log_reader_generator(
         log_path: str,
         file_extension: str,
-        parse_error_threshold: float
-) -> Mapping[str, List[float]] or None:
+):
     """
 
     :param log_path:
     :param file_extension:
-    :param parse_error_threshold:
     :return:
     """
-    request_times_per_url = defaultdict(list)
     read_line_number = 0
-    parsing_error_number = 0
     url_pattern = re.compile('(?<=\s)(\S+)(?= HTTP/1.)')
     request_time_pattern = re.compile('\S+$')
     log_file_reader = gzip.open if file_extension == 'gz' else open
@@ -207,28 +204,73 @@ def get_request_times_per_url(
             if not url or not req_time:
                 err_msg = 'Parsing error. Invalid line with number {}: {}'
                 logging.error(err_msg.format(read_line_number, line))
-                parsing_error_number += 1
-                continue
 
-            request_times_per_url[url].append(req_time)
-
-    # TODO consider the float specific features
-    error_ratio = parsing_error_number / read_line_number
-    too_many_errors = error_ratio > parse_error_threshold
-    req_times_per_url = request_times_per_url if not too_many_errors else None
-
-    return req_times_per_url
+            yield url, float(req_time)
 
 
 def get_statistics(
-        request_times_per_url: Mapping[str, List[float]]
-) -> Mapping[str, float]:
+        log_path: str,
+        file_extension: str,
+        parse_error_threshold: float
+) -> Mapping[str, Mapping[str, float]] or None:
     """
 
-    :param request_times_per_url:
-    :return:
     """
-    pass
+    log_reader = log_reader_generator(log_path, file_extension)
+    statistics = {}
+    initial_dict = {
+        'count': 1,
+        'time_sum': 1,
+        'time_max': 0,
+        'request_times': []
+    }
+    error_number, total_request_number, total_request_time = 0, 0, 0
+    log_note_number = 0
+
+    for log_note_number, (url, request_time) in enumerate(log_reader):
+        if url is None or request_time is None:
+            error_number += 1
+            continue
+        total_request_number += 1
+        total_request_time += request_time
+        if url not in statistics:
+            statistics[url] = initial_dict
+        else:
+            statistics[url]['count'] += 1
+            statistics[url]['time_sum'] += request_time
+            if request_time > statistics[url]['time_max']:
+                statistics[url]['time_max'] = request_time
+            statistics[url]['request_times'].append(request_time)
+
+    if not log_note_number:
+        logging.error(f'No notes in the file: {log_path}')
+        return
+
+    error_ratio = error_number / log_note_number
+    too_many_errors = error_ratio > parse_error_threshold
+    if too_many_errors:
+        err_ratio_msg = f'Errors per log lines ratio is {error_ratio}'
+        logging.error(f'Too many parsing errors. {err_ratio_msg}')
+        return
+
+    result = {}
+    for url, url_statistics in statistics.items():
+        count_percent = url_statistics['count'] / total_request_number * 100
+        time_percent = url_statistics['time_sum'] / total_request_time * 100
+        avg_request_time = url_statistics['time_sum'] / url_statistics['count']
+        median_request_time = median(url_statistics['request_times'])
+        url_result = {
+            'count': url_statistics['count'],
+            'count_perc': count_percent,
+            'time_sum': url_statistics['time_sum'],
+            'time_perc': time_percent,
+            'time_avg': avg_request_time,
+            'time_max': url_statistics['time_max'],
+            'time_med': median_request_time
+        }
+        result[url] = url_result
+
+    return result
 
 
 def render_report(statistics, report_dir, log_date, report_size):
@@ -255,15 +297,14 @@ def main():
     if not log_properties:
         sys.exit(f'No new log file is in {configuration["LOG_DIR"]}')
 
-    request_times_per_url = get_request_times_per_url(
+    statistics = get_statistics(
         log_properties.log_path,
         log_properties.file_extension,
         PARSE_ERROR_THRESHOLD
     )
-    if not request_times_per_url:
-        sys.exit(f'Parse error threshold {PARSE_ERROR_THRESHOLD} is exceeded.')
+    if statistics is None:
+        sys.exit(f'Can not parse the log file {log_properties.log_path}.')
 
-    statistics = get_statistics(request_times_per_url)
     render_report(
         statistics,
         configuration['REPORT_DIR'],
