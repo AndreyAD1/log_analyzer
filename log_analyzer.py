@@ -208,6 +208,26 @@ def log_reader_generator(
             yield url, float(req_time)
 
 
+def get_updated_median(request_time: float, median: float, sum, number) -> float:
+    """
+    Update and return median value.
+
+    Use algorithm suggested here: https://habr.com/ru/post/228575/
+
+    :param request_time:
+    :param median:
+    :param sum:
+    :param number:
+    :return:
+    """
+    delta = sum / number / number
+    if median <= request_time:
+        updated_median = median + delta
+    else:
+        updated_median = median - delta
+    return updated_median
+
+
 def get_statistics(
         log_path: str,
         file_extension: str,
@@ -217,13 +237,7 @@ def get_statistics(
 
     """
     log_reader = log_reader_generator(log_path, file_extension)
-    statistics = {}
-    initial_dict = {
-        'count': 1,
-        'time_sum': 1,
-        'time_max': 0,
-        'request_times': []
-    }
+    statistics_per_url = {}
     error_number, total_request_number, total_request_time = 0, 0, 0
     log_note_number = 0
 
@@ -231,16 +245,33 @@ def get_statistics(
         if url is None or request_time is None:
             error_number += 1
             continue
+
         total_request_number += 1
         total_request_time += request_time
-        if url not in statistics:
-            statistics[url] = initial_dict
+
+        if url not in statistics_per_url:
+            statistics_per_url[url] = {
+                'count': 1,
+                'time_sum': request_time,
+                'time_avg': request_time,
+                'time_max': request_time,
+                'time_med': request_time
+            }
         else:
-            statistics[url]['count'] += 1
-            statistics[url]['time_sum'] += request_time
-            if request_time > statistics[url]['time_max']:
-                statistics[url]['time_max'] = request_time
-            statistics[url]['request_times'].append(request_time)
+            url_info = statistics_per_url[url]
+            url_info['count'] += 1
+            url_info['time_sum'] += request_time
+            url_info['time_avg'] = url_info['time_sum'] / url_info['count']
+
+            if request_time > url_info['time_max']:
+                statistics_per_url[url]['time_max'] = request_time
+
+            statistics_per_url[url]['time_med'] = get_updated_median(
+                request_time,
+                url_info['time_med'],
+                url_info['time_sum'],
+                url_info['count']
+            )
 
     if not log_note_number:
         logging.error(f'No notes in the file: {log_path}')
@@ -253,24 +284,7 @@ def get_statistics(
         logging.error(f'Too many parsing errors. {err_ratio_msg}')
         return
 
-    result = {}
-    for url, url_statistics in statistics.items():
-        count_percent = url_statistics['count'] / total_request_number * 100
-        time_percent = url_statistics['time_sum'] / total_request_time * 100
-        avg_request_time = url_statistics['time_sum'] / url_statistics['count']
-        median_request_time = median(url_statistics['request_times'])
-        url_result = {
-            'count': url_statistics['count'],
-            'count_perc': count_percent,
-            'time_sum': url_statistics['time_sum'],
-            'time_perc': time_percent,
-            'time_avg': avg_request_time,
-            'time_max': url_statistics['time_max'],
-            'time_med': median_request_time
-        }
-        result[url] = url_result
-
-    return result
+    return statistics_per_url
 
 
 def render_report(statistics, report_dir, log_date, report_size):
