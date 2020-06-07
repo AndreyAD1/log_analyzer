@@ -8,7 +8,7 @@
 #                     '$request_time';
 
 import argparse
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from datetime import date
 import gzip
 import json
@@ -16,9 +16,8 @@ import logging
 import os
 from os.path import splitext
 import re
-from statistics import mean, median
 import sys
-from typing import Any, List, Mapping, Tuple, Union
+from typing import Any, Mapping, Tuple, Union
 
 default_config = {
     'REPORT_SIZE': 1000,
