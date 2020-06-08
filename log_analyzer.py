@@ -135,6 +135,7 @@ def search_in_reports(report_dir_path: str, log_date: date) -> bool or None:
     :param log_date:
     :return:
     """
+    # TODO BUG! If month or date is less than 10 the script will not add a prefix 0.
     expected_report_name = REPORT_NAME_TEMPLATE.format(
         log_date.year,
         log_date.month,
@@ -362,7 +363,7 @@ def main():
     if statistics is None:
         sys.exit(f'Can not parse the log file {log_properties.log_path}.')
 
-    statistics.sort(key=lambda x: x['time_sum'])
+    statistics.sort(key=lambda x: x['time_sum'], reverse=True)
     render_report(
         statistics,
         configuration['REPORT_DIR'],
