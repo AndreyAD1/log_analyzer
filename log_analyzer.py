@@ -16,8 +16,9 @@ import logging
 import os
 from os.path import splitext
 import re
+from string import Template
 import sys
-from typing import Any, Mapping, Tuple, Union
+from typing import Any, List, Mapping, Tuple, Union
 
 default_config = {
     'REPORT_SIZE': 1000,
@@ -231,7 +232,7 @@ def get_statistics(
         log_path: str,
         file_extension: str,
         parse_error_threshold: float
-) -> Mapping[str, Mapping[str, float]] or None:
+) -> List[Mapping[str, Union[str, float]]] or None:
     """
 
     """
@@ -273,7 +274,7 @@ def get_statistics(
             )
 
     if not any([log_note_number, total_request_number, total_request_time]):
-        logging.error(f'Could not parse any request in the file: {log_path}')
+        logging.error(f'Can not parse any request info in {log_path}')
         return
 
     error_ratio = error_number / log_note_number
@@ -283,15 +284,55 @@ def get_statistics(
         logging.error(f'Too many parsing errors. {err_ratio_msg}')
         return
 
+    report_list = []
     for url, statistics in statistics_per_url.items():
-        statistics['count_perc'] = statistics['count'] / total_request_number
-        statistics['time_perc'] = statistics['time_sum'] / total_request_time
+        dict_for_report = {
+            'url': url,
+            'count_perc': statistics['count'] / total_request_number,
+            'time_perc': statistics['time_sum'] / total_request_time,
+            **statistics
+        }
+        report_list.append(dict_for_report)
 
-    return statistics_per_url
+    return report_list
 
 
-def render_report(statistics, report_dir, log_date, report_size):
-    pass
+def render_report(statistics, report_dir, log_date, report_size: int):
+    assert report_size > 0
+    dict_to_report = {'table_json': statistics[:report_size]}
+    with open('./data/report.html', 'r') as report_template_file:
+        report_template_str = report_template_file.read()
+
+    template = Template(report_template_str)
+    report = template.safe_substitute(dict_to_report)
+    report_file_name = REPORT_NAME_TEMPLATE.format(
+        log_date.year,
+        log_date.month,
+        log_date.day
+    )
+    report_file_path = os.path.join(report_dir, report_file_name)
+    with open(report_file_path, 'w') as report_file:
+        report_file.write(report)
+
+
+def verify_configuration(config: Mapping[str, Union[str, int]]) -> str:
+    for param_name in ['LOG_DIR', 'REPORT_DIR', 'REPORT_SIZE']:
+        err_template = 'Required parameter {} is not configured.'
+        param_value = config.get(param_name)
+        error_message = '' if param_value else err_template.format(param_name)
+
+    if not error_message:
+        for dir_path in (config['LOG_DIR'], config['REPORT_DIR']):
+            dir_path_is_valid = verify_directory_path(dir_path)
+            if not dir_path_is_valid:
+                err_template = 'The invalid path in the configuration: {}.'
+                error_message = err_template.format(dir_path)
+
+    if not error_message and config['REPORT_SIZE'] <= 0:
+        err_template = 'The configured REPORT_SIZE is less than 1: {}.'
+        error_message = err_template.format(config['REPORT_SIZE'])
+
+    return error_message
 
 
 def main():
@@ -302,10 +343,9 @@ def main():
     if not configuration:
         sys.exit(f'Invalid configuration file {config_file_path}')
 
-    for dir_path in (configuration['LOG_DIR'], configuration['REPORT_DIR']):
-        dir_path_is_valid = verify_directory_path(dir_path)
-        if not dir_path_is_valid:
-            sys.exit(f'The invalid path in the configuration: {dir_path}.')
+    error = verify_configuration(configuration)
+    if error:
+        sys.exit(error)
 
     log_properties = get_log_properties(
         configuration['LOG_DIR'],
@@ -322,6 +362,7 @@ def main():
     if statistics is None:
         sys.exit(f'Can not parse the log file {log_properties.log_path}.')
 
+    statistics.sort(key=lambda x: x['time_sum'])
     render_report(
         statistics,
         configuration['REPORT_DIR'],
