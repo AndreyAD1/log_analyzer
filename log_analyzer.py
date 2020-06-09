@@ -23,7 +23,8 @@ from log_processing import get_log_properties
 default_config = {
     'REPORT_SIZE': 1000,
     'REPORT_DIR': './reports',
-    'LOG_DIR': './log'
+    'LOG_DIR': './log',
+    'SCRIPT_LOG_PATH': 'script.log'
 }
 logging.basicConfig(level=logging.DEBUG)
 
@@ -89,6 +90,7 @@ def verify_directory_path(directory_path: str) -> bool:
 
 
 def verify_configuration(config: Mapping[str, Union[str, int]]) -> str:
+    """Verify configured parameters."""
     for param_name in ['LOG_DIR', 'REPORT_DIR', 'REPORT_SIZE']:
         err_template = 'Required parameter {} is not configured.'
         param_value = config.get(param_name)
@@ -108,7 +110,22 @@ def verify_configuration(config: Mapping[str, Union[str, int]]) -> str:
     return error_message
 
 
-def render_report(statistics, report_dir, log_date, report_size: int):
+def render_report(
+        statistics,
+        report_dir,
+        log_date,
+        report_size: int,
+        logger: logging
+):
+    """
+    Render the script report.
+
+    :param statistics: a list containing statistics;
+    :param report_dir: a directory path to report saving;
+    :param log_date: a report date;
+    :param report_size: a number of rows which report should contain;
+    :param logger:
+    """
     assert report_size > 0
     dict_to_report = {'table_json': statistics[:report_size]}
     with open('./data/report.html', 'r') as report_template_file:
@@ -122,7 +139,7 @@ def render_report(statistics, report_dir, log_date, report_size: int):
     report_file_path = os.path.join(report_dir, report_file_name)
     with open(report_file_path, 'w') as report_file:
         report_file.write(report)
-    logging.info(f'Successfully render the report: {report_file_path}')
+    logger.info(f'Successfully render the report: {report_file_path}')
 
 
 def main():
