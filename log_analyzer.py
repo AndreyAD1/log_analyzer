@@ -31,7 +31,7 @@ LogProperties = namedtuple(
     'LogProperties',
     ['log_path', 'log_date', 'file_extension']
 )
-REPORT_NAME_TEMPLATE = 'report-{}.{}.{}.html'
+REPORT_NAME_TEMPLATE = 'report-{}.html'
 SPLITTED_LINE_LENGTH = 18
 logging.basicConfig(level=logging.DEBUG)
 
@@ -135,11 +135,8 @@ def search_in_reports(report_dir_path: str, log_date: date) -> bool or None:
     :param log_date:
     :return:
     """
-    # TODO BUG! If month or date is less than 10 the script will not add a prefix 0.
     expected_report_name = REPORT_NAME_TEMPLATE.format(
-        log_date.year,
-        log_date.month,
-        log_date.day
+        str(log_date).replace("-", ".")
     )
     expected_report_path = os.path.join(report_dir_path, expected_report_name)
     path_exists = os.path.exists(expected_report_path)
@@ -174,7 +171,7 @@ def get_log_properties(
         _, log_ext = splitext(newest_log_path)
         log_properties = LogProperties(newest_log_path, log_date, log_ext)
     else:
-        logging.info(f'Do not find a suitable log file in {log_dir_path}.')
+        logging.error(f'Do not find a suitable log file in {log_dir_path}.')
         log_properties = None
 
     return log_properties
@@ -204,7 +201,7 @@ def log_reader_generator(
 
             if not url or not req_time:
                 err_msg = 'Parsing error. Invalid line with number {}: {}'
-                logging.error(err_msg.format(read_line_number, line))
+                logging.info(err_msg.format(read_line_number, line))
 
             yield url, float(req_time)
 
@@ -307,9 +304,7 @@ def render_report(statistics, report_dir, log_date, report_size: int):
     template = Template(report_template_str)
     report = template.safe_substitute(dict_to_report)
     report_file_name = REPORT_NAME_TEMPLATE.format(
-        log_date.year,
-        log_date.month,
-        log_date.day
+        str(log_date).replace("-", ".")
     )
     report_file_path = os.path.join(report_dir, report_file_name)
     with open(report_file_path, 'w') as report_file:
