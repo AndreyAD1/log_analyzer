@@ -141,16 +141,16 @@ def render_report(
     logger.info(f'Successfully render the report: {report_file_path}')
 
 
-def main():
-    console_arguments = get_console_arguments()
-    config_file_path = console_arguments.config
-    configuration = get_configuration(config_file_path, default_config)
-    if not configuration:
-        sys.exit(f'Invalid configuration file {config_file_path}')
+def get_logger(log_path: Union[str, None]) -> logging:
+    """
+    Configure and return a logger.
 
+    :param log_path: a path to script log file. None if script should output
+    log to the stdout.
+    :return: logger object
+    """
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
-    log_path = configuration.get('SCRIPT_LOG_PATH')
     log_handler = FileHandler(log_path) if log_path else StreamHandler()
     formatter = logging.Formatter(
         fmt='[%(asctime)s] %(levelname).1s %(message)s',
@@ -158,6 +158,17 @@ def main():
     )
     log_handler.setFormatter(formatter)
     logger.addHandler(log_handler)
+    return logger
+
+
+def main():
+    console_arguments = get_console_arguments()
+    config_file_path = console_arguments.config
+    configuration = get_configuration(config_file_path, default_config)
+    if not configuration:
+        sys.exit(f'Invalid configuration file {config_file_path}')
+
+    logger = get_logger(configuration.get('SCRIPT_LOG_PATH'))
 
     error = verify_configuration(configuration)
     if error:
