@@ -10,6 +10,7 @@
 import argparse
 import json
 import logging
+from logging import FileHandler, StreamHandler
 import os
 from string import Template
 import sys
@@ -24,9 +25,7 @@ default_config = {
     'REPORT_SIZE': 1000,
     'REPORT_DIR': './reports',
     'LOG_DIR': './log',
-    'SCRIPT_LOG_PATH': 'script.log'
 }
-logging.basicConfig(level=logging.DEBUG)
 
 
 def get_console_arguments() -> argparse.Namespace:
@@ -145,10 +144,20 @@ def render_report(
 def main():
     console_arguments = get_console_arguments()
     config_file_path = console_arguments.config
-
     configuration = get_configuration(config_file_path, default_config)
     if not configuration:
         sys.exit(f'Invalid configuration file {config_file_path}')
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    log_path = configuration.get('SCRIPT_LOG_PATH')
+    log_handler = FileHandler(log_path) if log_path else StreamHandler()
+    formatter = logging.Formatter(
+        fmt='[%(asctime)s] %(levelname).1s %(message)s',
+        datefmt='%Y.%m.%d %H:%M:%S'
+    )
+    log_handler.setFormatter(formatter)
+    logger.addHandler(log_handler)
 
     error = verify_configuration(configuration)
     if error:
@@ -157,7 +166,7 @@ def main():
     log_properties = get_log_properties(
         configuration['LOG_DIR'],
         configuration['REPORT_DIR'],
-        logging
+        logger
     )
     if not log_properties:
         sys.exit(f'No new log file is in {configuration["LOG_DIR"]}')
@@ -166,7 +175,7 @@ def main():
         log_properties.log_path,
         log_properties.file_extension,
         PARSE_ERROR_THRESHOLD,
-        logging
+        logger
     )
     if statistics is None:
         sys.exit(f'Can not parse the log file {log_properties.log_path}.')
@@ -176,7 +185,8 @@ def main():
         statistics,
         configuration['REPORT_DIR'],
         log_properties.log_date,
-        configuration['REPORT_SIZE']
+        configuration['REPORT_SIZE'],
+        logger
     )
 
 

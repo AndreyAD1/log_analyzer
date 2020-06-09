@@ -107,15 +107,13 @@ def get_log_properties(
 def log_reader_generator(
         log_path: str,
         file_extension: str,
-        logger: logging
-) -> Generator[Tuple[str, float]]:
+) -> Generator[Tuple[str, float], None, None]:
     """
     Open log file, parse and yield url and request time from each file line.
 
     :param log_path: the path of log file;
     :param file_extension: extension of log file;
     Valid values: empty string or 'gz';
-    :param logger: a logger object;
     :return: url and request processing duration.
     """
     read_line_number = 0
@@ -132,6 +130,6 @@ def log_reader_generator(
 
             if not url or not req_time:
                 err_msg = 'Parsing error. Invalid line with number {}: {}'
-                logger.info(err_msg.format(read_line_number, line))
+                logging.info(err_msg.format(read_line_number, line))
 
             yield url, float(req_time)

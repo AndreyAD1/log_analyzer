@@ -41,7 +41,7 @@ def get_statistics(
     scripts returns an error;
     :param logger: logger object.
     """
-    log_reader = log_reader_generator(log_path, file_extension, logger)
+    log_reader = log_reader_generator(log_path, file_extension)
     statistics_per_url = {}
     error_number, total_request_number, total_request_time = 0, 0, 0
     log_note_number = 0
