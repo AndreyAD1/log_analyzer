@@ -1,4 +1,4 @@
-"""Функции для расчёта статистик."""
+"""Functions to calculate statistics."""
 
 import logging
 from typing import List, Mapping, Union
@@ -6,20 +6,20 @@ from typing import List, Mapping, Union
 from log_processing import log_reader_generator
 
 
-def get_updated_median(request_time: float, median: float, sum, number) -> float:
+def get_updated_median(sample: float, median: float, sum, number) -> float:
     """
     Update and return median value.
 
     Use algorithm suggested here: https://habr.com/ru/post/228575/
 
-    :param request_time:
-    :param median:
-    :param sum:
-    :param number:
-    :return:
+    :param sample: a sample;
+    :param median: a current median estimation;
+    :param sum: current sum of all samples;
+    :param number: current sample number;
+    :return: new median estimation
     """
     delta = sum / number / number
-    if median <= request_time:
+    if median <= sample:
         updated_median = median + delta
     else:
         updated_median = median - delta
@@ -33,7 +33,13 @@ def get_statistics(
         logger: logging
 ) -> List[Mapping[str, Union[str, float]]] or None:
     """
+    Parse a log file and return statistics for each URL.
 
+    :param log_path: a path of log file;
+    :param file_extension: an extension of log file;
+    :param parse_error_threshold: if parsing error ration exceeded this limit
+    scripts returns an error;
+    :param logger: logger object.
     """
     log_reader = log_reader_generator(log_path, file_extension, logger)
     statistics_per_url = {}

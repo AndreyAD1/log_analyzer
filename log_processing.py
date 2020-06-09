@@ -1,4 +1,4 @@
-"""Функции для поиска и обработки логов."""
+"""Functions to find and process a log file."""
 
 from collections import namedtuple
 from datetime import date
@@ -6,7 +6,7 @@ import gzip
 import logging
 import os.path
 import re
-from typing import Tuple
+from typing import Generator, Tuple
 
 from constants import REPORT_NAME_TEMPLATE
 
@@ -18,19 +18,21 @@ LogProperties = namedtuple(
 
 
 def get_new_log_path_and_date(
-        direcrory_path: str
+        directory_path: str
 ) -> Tuple[str, str] or Tuple[None, None]:
     """
+    Return log file path and its date if new log was found.
 
-    :param direcrory_path:
-    :return:
+    :param directory_path: a directory containing log files.
+    :return: log path and log date. If no new log path and date found -
+    (None, None).
     """
     log_pattern = re.compile(
         '(?<=^nginx-access-ui\.log-)(20\d{2})(\d{2})(\d{2})(?=$|\.gz)'
     )
     newest_log_path = None
     log_date = date(1, 1, 1)
-    for path, _, file_names in os.walk(direcrory_path):
+    for path, _, file_names in os.walk(directory_path):
         for file_name in file_names:
             log_date_match = log_pattern.search(file_name)
             if not log_date_match:
@@ -50,15 +52,13 @@ def get_new_log_path_and_date(
     return newest_log_path, log_date
 
 
-def search_in_reports(
-        report_dir_path: str,
-        log_date: date,
-) -> bool or None:
+def search_in_reports(report_dir_path: str, log_date: date) -> bool:
     """
+    Check if report with given date is in a directory containing reports.
 
-    :param report_dir_path:
-    :param log_date:
-    :return:
+    :param report_dir_path: directory containing script results;
+    :param log_date: a report date;
+    :return: True if searched report is found in report directory.
     """
     expected_report_name = REPORT_NAME_TEMPLATE.format(
         str(log_date).replace("-", ".")
@@ -108,13 +108,15 @@ def log_reader_generator(
         log_path: str,
         file_extension: str,
         logger: logging
-):
+) -> Generator[Tuple[str, float]]:
     """
+    Open log file, parse and yield url and request time from each file line.
 
-    :param log_path:
-    :param file_extension:
-    :param logger:
-    :return:
+    :param log_path: the path of log file;
+    :param file_extension: extension of log file;
+    Valid values: empty string or 'gz';
+    :param logger: a logger object;
+    :return: url and request processing duration.
     """
     read_line_number = 0
     url_pattern = re.compile('(?<=\s)(\S+)(?= HTTP/1.)')

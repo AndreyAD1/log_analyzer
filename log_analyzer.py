@@ -70,9 +70,10 @@ def get_configuration(
 
 def verify_directory_path(directory_path: str) -> bool:
     """
+    Verify a configured directory.
 
     :param directory_path:
-    :return:
+    :return: True if the directory path is valid.
     """
     err_msg = ''
     if not os.path.exists(directory_path):
