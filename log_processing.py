@@ -74,7 +74,6 @@ def search_in_reports(report_dir_path: str, log_date: date) -> bool:
 def get_log_properties(
         log_dir_path: str,
         report_dir_path: str,
-        logger: logging
 ) -> LogProperties or None:
     """
     Return the properties of new log file or None if no log file found.
@@ -86,7 +85,7 @@ def get_log_properties(
     a log file extension. Function returns None if it found no valid log file
     or found a log file which had been already processed.
     """
-
+    logger = logging.getLogger()
     newest_log_path, log_date = get_new_log_path_and_date(log_dir_path)
     report_is_ready = False
     if newest_log_path:
@@ -116,6 +115,7 @@ def log_reader_generator(
     Valid values: empty string or 'gz';
     :return: url and request processing duration.
     """
+    logger = logging.getLogger()
     read_line_number = 0
     url_pattern = re.compile('(?<=\s)(\S+)(?= HTTP/1.)')
     request_time_pattern = re.compile('\S+$')
@@ -130,6 +130,6 @@ def log_reader_generator(
 
             if not url or not req_time:
                 err_msg = 'Parsing error. Invalid line with number {}: {}'
-                logging.info(err_msg.format(read_line_number, line))
+                logger.error(err_msg.format(read_line_number, line))
 
             yield url, float(req_time)

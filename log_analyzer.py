@@ -25,6 +25,7 @@ default_config = {
     'REPORT_SIZE': 1000,
     'REPORT_DIR': './reports',
     'LOG_DIR': './log',
+    'SCRIPT_LOG_PATH': 'script.log'
 }
 
 
@@ -75,14 +76,14 @@ def get_configuration(
     return configuration
 
 
-def verify_directory_path(directory_path: str, logger: logging) -> bool:
+def verify_directory_path(directory_path: str) -> bool:
     """
     Verify a configured directory.
 
     :param directory_path:
-    :param logger:
     :return: True if the directory path is valid.
     """
+    logger = logging.getLogger()
     err_msg = ''
     if not os.path.exists(directory_path):
         err_msg = f'Can not find the directory {directory_path}.'
@@ -96,10 +97,7 @@ def verify_directory_path(directory_path: str, logger: logging) -> bool:
     return not bool(err_msg)
 
 
-def verify_configuration(
-        config: Mapping[str, Union[str, int]],
-        logger: logging
-) -> str:
+def verify_configuration(config: Mapping[str, Union[str, int]],) -> str:
     """Verify configured parameters."""
     for param_name in ['LOG_DIR', 'REPORT_DIR', 'REPORT_SIZE']:
         err_template = 'Required parameter {} is not configured.'
@@ -108,7 +106,7 @@ def verify_configuration(
 
     if not error_message:
         for dir_path in (config['LOG_DIR'], config['REPORT_DIR']):
-            dir_path_is_valid = verify_directory_path(dir_path, logger)
+            dir_path_is_valid = verify_directory_path(dir_path)
             if not dir_path_is_valid:
                 err_template = 'The invalid path in the configuration: {}.'
                 error_message = err_template.format(dir_path)
@@ -125,7 +123,6 @@ def render_report(
         report_dir,
         log_date,
         report_size: int,
-        logger: logging
 ):
     """
     Render the script report.
@@ -134,8 +131,8 @@ def render_report(
     :param report_dir: a directory path to report saving;
     :param log_date: a report date;
     :param report_size: a number of rows which report should contain;
-    :param logger:
     """
+    logger = logging.getLogger()
     assert report_size > 0
     dict_to_report = {'table_json': statistics[:report_size]}
     with open('./data/report.html', 'r') as report_template_file:
@@ -152,46 +149,43 @@ def render_report(
     logger.info(f'Successfully render the report: {report_file_path}')
 
 
-def get_logger(log_path: Union[str, None]) -> logging:
+def configure_logger(log_path: Union[str, None]):
     """
-    Configure and return a logger.
+    Configure a logger.
 
     :param log_path: a path to script log file. None if script should output
     log to the stdout.
-    :return: logger object
     """
     logger = logging.getLogger()
     for handler in logger.handlers:
         logger.removeHandler(handler)
 
     log_handler = FileHandler(log_path) if log_path else StreamHandler()
-    log_handler.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         fmt='[%(asctime)s] %(levelname).1s %(message)s',
         datefmt='%Y.%m.%d %H:%M:%S'
     )
     log_handler.setFormatter(formatter)
     logger.addHandler(log_handler)
-    return logger
 
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)
     console_arguments = get_console_arguments()
     config_file_path = console_arguments.config
     configuration = get_configuration(config_file_path, default_config)
     if not configuration:
         sys.exit(f'Invalid configuration file {config_file_path}')
 
-    logger = get_logger(configuration.get('SCRIPT_LOG_PATH'))
+    configure_logger(configuration.get('SCRIPT_LOG_PATH'))
 
-    error = verify_configuration(configuration, logger)
+    error = verify_configuration(configuration)
     if error:
         sys.exit(error)
 
     log_properties = get_log_properties(
         configuration['LOG_DIR'],
         configuration['REPORT_DIR'],
-        logger
     )
     if not log_properties:
         sys.exit(f'No new log file is in {configuration["LOG_DIR"]}')
@@ -200,7 +194,6 @@ def main():
         log_properties.log_path,
         log_properties.file_extension,
         PARSE_ERROR_THRESHOLD,
-        logger
     )
     if statistics is None:
         sys.exit(f'Can not parse the log file {log_properties.log_path}.')
@@ -211,7 +204,6 @@ def main():
         configuration['REPORT_DIR'],
         log_properties.log_date,
         configuration['REPORT_SIZE'],
-        logger
     )
 
 

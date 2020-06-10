@@ -6,7 +6,12 @@ from typing import List, Mapping, Union
 from log_processing import log_reader_generator
 
 
-def get_updated_median(sample: float, median: float, sum, number) -> float:
+def get_updated_median(
+        sample: float,
+        median: float,
+        sample_sum: float,
+        sample_number: int
+) -> Union[float, None]:
     """
     Update and return median value.
 
@@ -14,11 +19,16 @@ def get_updated_median(sample: float, median: float, sum, number) -> float:
 
     :param sample: a sample;
     :param median: a current median estimation;
-    :param sum: current sum of all samples;
-    :param number: current sample number;
+    :param sample_sum: current sum of all samples;
+    :param sample_number: current sample number;
     :return: new median estimation
     """
-    delta = sum / number / number
+    logger = logging.getLogger()
+    logger.debug(f'Begin to update a median estimation {median}.')
+    if sample_number == 0:
+        logger.error('Sample number is 0.')
+        return None
+    delta = sample_sum / sample_number / sample_number
     if median <= sample:
         updated_median = median + delta
     else:
@@ -30,7 +40,6 @@ def get_statistics(
         log_path: str,
         file_extension: str,
         parse_error_threshold: float,
-        logger: logging
 ) -> List[Mapping[str, Union[str, float]]] or None:
     """
     Parse a log file and return statistics for each URL.
@@ -39,15 +48,17 @@ def get_statistics(
     :param file_extension: an extension of log file;
     :param parse_error_threshold: if parsing error ration exceeded this limit
     scripts returns an error;
-    :param logger: logger object.
     """
+    logger = logging.getLogger()
     log_reader = log_reader_generator(log_path, file_extension)
     statistics_per_url = {}
     error_number, total_request_number, total_request_time = 0, 0, 0
     log_note_number = 0
 
     for log_note_number, (url, request_time) in enumerate(log_reader):
+        logger.debug(f'Begin to process the row {log_note_number}')
         if url is None or request_time is None:
+            logger.error(f'Parsing error in the row {log_note_number}.')
             error_number += 1
             continue
 
@@ -62,6 +73,8 @@ def get_statistics(
                 'time_max': request_time,
                 'time_med': request_time
             }
+            msg_template = 'Encounter {} for the first time in the row {}.'
+            logger.debug(msg_template.format(url, log_note_number))
         else:
             url_info = statistics_per_url[url]
             url_info['count'] += 1
@@ -71,12 +84,16 @@ def get_statistics(
             if request_time > url_info['time_max']:
                 statistics_per_url[url]['time_max'] = request_time
 
-            statistics_per_url[url]['time_med'] = get_updated_median(
+            updated_median = get_updated_median(
                 request_time,
                 url_info['time_med'],
                 url_info['time_sum'],
                 url_info['count']
             )
+            if updated_median is None:
+                logger.error('Can not update a median estimation.')
+            statistics_per_url[url]['time_med'] = updated_median
+            logger.debug(f'Successfully processed the row {log_note_number}')
 
     if not any([log_note_number, total_request_number, total_request_time]):
         logger.error(f'Can not parse any request info in {log_path}')
@@ -97,6 +114,7 @@ def get_statistics(
             'time_perc': statistics['time_sum'] / total_request_time,
             **statistics
         }
+        logger.debug(f'Calculate the statistic set: {dict_for_report}')
         report_list.append(dict_for_report)
 
     return report_list
