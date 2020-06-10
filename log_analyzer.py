@@ -57,22 +57,30 @@ def get_configuration(
     custom_configuration = {}
 
     if input_filepath is not None:
+        logging.debug(f'Load configuration from the file {input_filepath}')
         try:
             with open(input_filepath) as config_file:
-                custom_configuration = json.load(config_file)
+                try:
+                    custom_configuration = json.load(config_file)
+                except json.JSONDecodeError as ex:
+                    err_msg = 'Can not parse JSON in the configuration file {}'
+                    logging.exception(err_msg.format(input_filepath))
         except OSError:
-            logging.error(f'Invalid configuration file path: {input_filepath}')
+            err_msg = f'Invalid configuration file path: {input_filepath}'
+            logging.exception(err_msg)
             return None
 
     configuration = {**default_configuration, **custom_configuration}
+    logging.debug('Built result configuration.')
     return configuration
 
 
-def verify_directory_path(directory_path: str) -> bool:
+def verify_directory_path(directory_path: str, logger: logging) -> bool:
     """
     Verify a configured directory.
 
     :param directory_path:
+    :param logger:
     :return: True if the directory path is valid.
     """
     err_msg = ''
@@ -83,12 +91,15 @@ def verify_directory_path(directory_path: str) -> bool:
         err_msg = f'The entered path {directory_path} is not a directory path.'
 
     if err_msg:
-        logging.error(err_msg)
+        logger.error(err_msg)
 
     return not bool(err_msg)
 
 
-def verify_configuration(config: Mapping[str, Union[str, int]]) -> str:
+def verify_configuration(
+        config: Mapping[str, Union[str, int]],
+        logger: logging
+) -> str:
     """Verify configured parameters."""
     for param_name in ['LOG_DIR', 'REPORT_DIR', 'REPORT_SIZE']:
         err_template = 'Required parameter {} is not configured.'
@@ -97,7 +108,7 @@ def verify_configuration(config: Mapping[str, Union[str, int]]) -> str:
 
     if not error_message:
         for dir_path in (config['LOG_DIR'], config['REPORT_DIR']):
-            dir_path_is_valid = verify_directory_path(dir_path)
+            dir_path_is_valid = verify_directory_path(dir_path, logger)
             if not dir_path_is_valid:
                 err_template = 'The invalid path in the configuration: {}.'
                 error_message = err_template.format(dir_path)
@@ -150,8 +161,11 @@ def get_logger(log_path: Union[str, None]) -> logging:
     :return: logger object
     """
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    for handler in logger.handlers:
+        logger.removeHandler(handler)
+
     log_handler = FileHandler(log_path) if log_path else StreamHandler()
+    log_handler.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         fmt='[%(asctime)s] %(levelname).1s %(message)s',
         datefmt='%Y.%m.%d %H:%M:%S'
@@ -170,7 +184,7 @@ def main():
 
     logger = get_logger(configuration.get('SCRIPT_LOG_PATH'))
 
-    error = verify_configuration(configuration)
+    error = verify_configuration(configuration, logger)
     if error:
         sys.exit(error)
 
