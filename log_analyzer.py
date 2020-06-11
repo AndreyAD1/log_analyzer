@@ -66,7 +66,7 @@ def get_configuration(
                 except json.JSONDecodeError as ex:
                     err_msg = 'Can not parse JSON in the configuration file {}'
                     logging.exception(err_msg.format(input_filepath))
-        except OSError:
+        except (OSError, FileNotFoundError):
             err_msg = f'Invalid configuration file path: {input_filepath}'
             logging.exception(err_msg)
             return None

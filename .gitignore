@@ -4,9 +4,10 @@ __pycache__/
 *$py.class
 
 .idea
+log
 
 # Log files
-*.log-*
+
 *.log
 # Report files
 report-*
