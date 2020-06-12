@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import subprocess
-from typing import Sequence
 import unittest
 
 test_module_path = os.path.abspath(getsourcefile(lambda: 0))

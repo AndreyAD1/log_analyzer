@@ -9,6 +9,7 @@
 
 import argparse
 import json
+from inspect import getsourcefile
 import logging
 from logging import FileHandler, StreamHandler
 import os
@@ -135,7 +136,9 @@ def render_report(
     logger = logging.getLogger()
     assert report_size > 0
     dict_to_report = {'table_json': statistics[:report_size]}
-    with open('./data/report.html', 'r') as report_template_file:
+    script_dir = os.path.dirname(os.path.abspath(getsourcefile(lambda: 0)))
+    report_template_path = os.path.join(script_dir, 'data', 'report.html')
+    with open(report_template_path, 'r') as report_template_file:
         report_template_str = report_template_file.read()
 
     template = Template(report_template_str)
