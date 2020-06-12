@@ -119,8 +119,9 @@ def log_reader_generator(
     read_line_number = 0
     url_pattern = re.compile('(?<=\s)(\S+)(?= HTTP/1.)')
     request_time_pattern = re.compile('\S+$')
-    log_file_reader = gzip.open if file_extension == 'gz' else open
-    with log_file_reader(log_path, 'r') as log_file:
+    log_file_reader = gzip.open if file_extension == '.gz' else open
+    read_param = 'rt' if file_extension == '.gz' else 'r'
+    with log_file_reader(log_path, read_param) as log_file:
         for line in log_file:
             read_line_number += 1
             url_match = url_pattern.search(line)
