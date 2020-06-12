@@ -15,6 +15,7 @@ TEST_REPORTS_DIR = os.path.join(test_dir_path, 'test_reports')
 
 FIRST_LOG_NAME = 'nginx-access-ui.log-20170101'
 LATEST_LOG_NAME = 'nginx-access-ui.log-20190930'
+OTHER_SERVICE_LOG_NAME = 'other_service.log-20300101'
 CORRECT_REPORT_NAME = 'correct_report-2019.09.30.html'
 
 CORRECT_REPORT_PATH = os.path.join(TEST_DATA_DIR, CORRECT_REPORT_NAME)
@@ -28,8 +29,8 @@ class PositiveTestCase(unittest.TestCase):
     def setUp(self) -> None:
         os.mkdir(TEST_REPORTS_DIR)
         os.mkdir(TEST_INPUT_LOGS_DIR)
-
-        for log_name in [FIRST_LOG_NAME, LATEST_LOG_NAME]:
+        log_names = [FIRST_LOG_NAME, LATEST_LOG_NAME, OTHER_SERVICE_LOG_NAME]
+        for log_name in log_names:
             log_path = os.path.join(TEST_DATA_DIR, log_name)
             test_log = os.path.join(TEST_INPUT_LOGS_DIR, log_name)
             shutil.copy2(log_path, test_log)
@@ -42,12 +43,10 @@ class PositiveTestCase(unittest.TestCase):
             }
             json.dump(config, config_file)
 
-    def test_config_argument(self):
-        result = subprocess.run(SHELL_ARGS)
-        self.assertEqual(result.returncode, 0)
-
     def test_report(self):
-        subprocess.run(SHELL_ARGS)
+        res = subprocess.run(SHELL_ARGS)
+        self.assertEqual(res.returncode, 0, msg='The script suddenly failed.')
+
         files_in_reports = [file for _, _, file in os.walk(TEST_REPORTS_DIR)]
         reason = f'The script doesn`t output a report {EXPECTED_REPORT_PATH}.'
         err_msg = f'{reason}\nAvailable files: {files_in_reports}'
