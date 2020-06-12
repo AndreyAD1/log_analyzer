@@ -111,5 +111,30 @@ class GzipLog(unittest.TestCase):
         shutil.rmtree(TEST_INPUT_LOGS_DIR)
 
 
+class RepeatedStart(unittest.TestCase):
+    """Parse the log packed by gzip."""
+    def setUp(self) -> None:
+        test_logs = [
+            FIRST_LOG_NAME,
+            LATEST_LOG_NAME,
+            OTHER_SERVICE_LOG_NAME
+        ]
+        create_test_dirs(test_logs)
+
+    def test_repeated_start(self):
+        subprocess.run([*SHELL_ARGS, CUSTOM_CONFIG_PATH])
+        res = subprocess.run([*SHELL_ARGS, CUSTOM_CONFIG_PATH])
+        self.assertEqual(
+            res.returncode,
+            1,
+            msg='The script repeat the work.'
+        )
+
+    def tearDown(self) -> None:
+        shutil.rmtree(TEST_REPORTS_DIR)
+        os.remove(CUSTOM_CONFIG_PATH)
+        shutil.rmtree(TEST_INPUT_LOGS_DIR)
+
+
 if __name__ == '__main__':
     unittest.main()
