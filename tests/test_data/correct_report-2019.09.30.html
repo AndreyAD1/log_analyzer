@@ -1,0 +1,137 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>rbui log analysis report</title>
+  <meta name="description" content="rbui log analysis report">
+  <style type="text/css">
+    html, body {
+      background-color: black;
+    }
+    th {
+      text-align: center;
+      color: silver;
+      font-style: bold;
+      padding: 5px;
+      cursor: pointer;
+    }
+    table {
+      width: auto;
+      border-collapse: collapse;
+      margin: 1%;
+      color: silver;
+    }
+    td {
+      text-align: right;
+      font-size: 1.1em;
+      padding: 5px;
+    }
+    .report-table-body-cell-url {
+      text-align: left;
+      width: 20%;
+    }
+    .clipped {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow:hidden !important;
+      max-width: 700px;
+      word-wrap: break-word;
+      display:inline-block;
+    }
+    .url {
+      cursor: pointer;
+      color: #729FCF;
+    }
+    .alert {
+      color: red;
+    }
+  </style>
+</head>
+
+<body>
+  <table border="1" class="report-table">
+  <thead>
+    <tr class="report-table-header-row">
+    </tr>
+  </thead>
+  <tbody class="report-table-body">
+  </tbody>
+
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script type="text/javascript" src="jquery.tablesorter.min.js"></script> 
+  <script type="text/javascript">
+  !function($) {
+    var table = [{'url': '/agency/campaigns/6403173/banners/bulk_read/', 'count_perc': 0.009615384615384616, 'time_perc': 0.0987379178723142, 'count': 1, 'time_sum': 8.019, 'time_avg': 8.019, 'time_max': 8.019, 'time_med': 8.019}, {'url': '/agency/banners_stats/?date1=26-06-2017&date2=28-06-2017&date_type=day&do=1&rt=campaign&oi=5370438&as_json=1', 'count_perc': 0.009615384615384616, 'time_perc': 0.08407313919842392, 'count': 1, 'time_sum': 6.828, 'time_avg': 6.828, 'time_max': 6.828, 'time_med': 6.828}, {'url': '/agency/campaigns/5399816/banners/bulk_read/', 'count_perc': 0.009615384615384616, 'time_perc': 0.06189743274025733, 'count': 1, 'time_sum': 5.027, 'time_avg': 5.027, 'time_max': 5.027, 'time_med': 5.027}, {'url': '/campaigns/7854358/banners/?', 'count_perc': 0.009615384615384616, 'time_perc': 0.05767407498614787, 'count': 1, 'time_sum': 4.684, 'time_avg': 4.684, 'time_max': 4.684, 'time_med': 4.684}, {'url': '/api/v2/slot/4847/groups', 'count_perc': 0.009615384615384616, 'time_perc': 0.04399433602167086, 'count': 1, 'time_sum': 3.573, 'time_avg': 3.573, 'time_max': 3.573, 'time_med': 3.573}, {'url': '/api/1/banners/?campaign=7789704', 'count_perc': 0.009615384615384616, 'time_perc': 0.03173059163947546, 'count': 1, 'time_sum': 2.577, 'time_avg': 2.577, 'time_max': 2.577, 'time_med': 2.577}, {'url': '/api/v2/banner/25013061', 'count_perc': 0.009615384615384616, 'time_perc': 0.030782490919165174, 'count': 1, 'time_sum': 2.5, 'time_avg': 2.5, 'time_max': 2.5, 'time_med': 2.5}, {'url': '/campaigns/7272511/banners/', 'count_perc': 0.009615384615384616, 'time_perc': 0.02915717539863325, 'count': 1, 'time_sum': 2.368, 'time_avg': 2.368, 'time_max': 2.368, 'time_med': 2.368}, {'url': '/api/v2/banner/25047605', 'count_perc': 0.009615384615384616, 'time_perc': 0.02703934002339469, 'count': 1, 'time_sum': 2.196, 'time_avg': 2.196, 'time_max': 2.196, 'time_med': 2.196}, {'url': '/api/v2/banner/26656130', 'count_perc': 0.009615384615384616, 'time_perc': 0.02617743027765806, 'count': 1, 'time_sum': 2.126, 'time_avg': 2.126, 'time_max': 2.126, 'time_med': 2.126}];
+    var reportDates;
+    var columns = new Array();
+    var lastRow = 150;
+    var $table = $(".report-table-body");
+    var $header = $(".report-table-header-row");
+    var $selector = $(".report-date-selector");
+
+    $(document).ready(function() {
+      $(window).bind("scroll", bindScroll);
+        var row = table[0];
+        for (k in row) {
+          columns.push(k);
+        }
+        columns = columns.sort();
+        columns = columns.slice(columns.length -1, columns.length).concat(columns.slice(0, columns.length -1));
+        drawColumns();
+        drawRows(table.slice(0, lastRow));
+        $(".report-table").tablesorter(); 
+    });
+
+    function drawColumns() {
+      for (var i = 0; i < columns.length; i++) {
+        var $th = $("<th></th>").text(columns[i])
+                                .addClass("report-table-header-cell")
+        $header.append($th);
+      }
+    }
+
+    function drawRows(rows) {
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var $row = $("<tr></tr>").addClass("report-table-body-row");
+        for (var j = 0; j < columns.length; j++) {
+          var columnName = columns[j];
+          var $cell = $("<td></td>").addClass("report-table-body-cell");
+          if (columnName == "url") {
+            var url = "https://rb.mail.ru" + row[columnName];
+            var $link = $("<a></a>").attr("href", url)
+                                    .attr("title", url)
+                                    .attr("target", "_blank")
+                                    .addClass("clipped")
+                                    .addClass("url")
+                                    .text(row[columnName]);
+            $cell.addClass("report-table-body-cell-url");
+            $cell.append($link);
+          }
+          else {
+            $cell.text(row[columnName]);
+            if (columnName == "time_avg" && row[columnName] > 0.9) {
+              $cell.addClass("alert");
+            }
+          }
+          $row.append($cell);
+        }
+        $table.append($row);
+      }
+      $(".report-table").trigger("update"); 
+    }
+
+    function bindScroll() {
+      if($(window).scrollTop() == $(document).height() - $(window).height()) {
+        if (lastRow < 1000) {
+          drawRows(table.slice(lastRow, lastRow + 50));
+          lastRow += 50;
+        }
+      }
+    }
+
+  }(window.jQuery)
+  </script>
+</body>
+</html>
