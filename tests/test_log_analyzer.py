@@ -1,6 +1,7 @@
 import json
 from inspect import getsourcefile
 import os
+import re
 import shutil
 import subprocess
 from typing import Sequence
@@ -20,6 +21,8 @@ FIRST_LOG_NAME = 'nginx-access-ui.log-20170101'
 LATEST_LOG_NAME = 'nginx-access-ui.log-20190930'
 LATEST_PACKED_LOG_NAME = 'nginx-access-ui.log-20190930.gz'
 OTHER_SERVICE_LOG_NAME = 'other_service.log-20300101'
+INVALID_LOG_NAME = 'nginx-access-ui.log-19900101'
+
 CORRECT_REPORT_NAME = 'correct_report-2019.09.30.html'
 
 CORRECT_REPORT_PATH = os.path.join(TEST_DATA_DIR, CORRECT_REPORT_NAME)
@@ -29,8 +32,8 @@ EXPECTED_REPORT_PATH = os.path.join(TEST_REPORTS_DIR, EXPECTED_REPORT_NAME)
 SHELL_ARGS = ['python', 'log_analyzer.py', '--config']
 
 
-def create_test_dirs(log_names: Sequence[str]):
-    """Create test dirs."""
+def create_test_dirs(*log_names):
+    """Create test directories."""
     os.mkdir(TEST_REPORTS_DIR)
     os.mkdir(TEST_INPUT_LOGS_DIR)
     for log_name in log_names:
@@ -50,8 +53,11 @@ def create_test_dirs(log_names: Sequence[str]):
 class SetConfigParam(unittest.TestCase):
     """Launch the script with a parameter "--config <filepath>"."""
     def setUp(self) -> None:
-        test_logs = [FIRST_LOG_NAME, LATEST_LOG_NAME, OTHER_SERVICE_LOG_NAME]
-        create_test_dirs(test_logs)
+        create_test_dirs(
+            FIRST_LOG_NAME,
+            LATEST_LOG_NAME,
+            OTHER_SERVICE_LOG_NAME
+        )
 
     def test_set_config(self):
         res = subprocess.run([*SHELL_ARGS, CUSTOM_CONFIG_PATH])
@@ -80,12 +86,11 @@ class SetConfigParam(unittest.TestCase):
 class GzipLog(unittest.TestCase):
     """Parse the log packed by gzip."""
     def setUp(self) -> None:
-        test_logs = [
+        create_test_dirs(
             FIRST_LOG_NAME,
             LATEST_PACKED_LOG_NAME,
             OTHER_SERVICE_LOG_NAME
-        ]
-        create_test_dirs(test_logs)
+        )
 
     def test_gzip_log(self):
         res = subprocess.run([*SHELL_ARGS, CUSTOM_CONFIG_PATH])
@@ -112,14 +117,9 @@ class GzipLog(unittest.TestCase):
 
 
 class RepeatedStart(unittest.TestCase):
-    """Parse the log packed by gzip."""
+    """Check if the script repeats a work."""
     def setUp(self) -> None:
-        test_logs = [
-            FIRST_LOG_NAME,
-            LATEST_LOG_NAME,
-            OTHER_SERVICE_LOG_NAME
-        ]
-        create_test_dirs(test_logs)
+        create_test_dirs(LATEST_LOG_NAME)
 
     def test_repeated_start(self):
         subprocess.run([*SHELL_ARGS, CUSTOM_CONFIG_PATH])
@@ -127,7 +127,33 @@ class RepeatedStart(unittest.TestCase):
         self.assertEqual(
             res.returncode,
             1,
-            msg='The script repeat the work.'
+            msg='The script has repeated the work.'
+        )
+
+    def tearDown(self) -> None:
+        shutil.rmtree(TEST_REPORTS_DIR)
+        os.remove(CUSTOM_CONFIG_PATH)
+        shutil.rmtree(TEST_INPUT_LOGS_DIR)
+
+
+class ParseErrors(unittest.TestCase):
+    """Check if the script processes a log containing too many errors."""
+    def setUp(self) -> None:
+        create_test_dirs(INVALID_LOG_NAME)
+
+    def test_repeated_start(self):
+        res = subprocess.run([*SHELL_ARGS, CUSTOM_CONFIG_PATH], stderr=subprocess.PIPE)
+        self.assertEqual(
+            res.returncode,
+            1,
+            msg='The script has processed the log containing too many errors.'
+        )
+        script_error_msg = str(res.stderr)
+        expected_error_message = 'Can not parse the log file'
+        template = 'Invalid error message: {}. Expected message begins with {}'
+        self.assertTrue(
+            re.match(expected_error_message, script_error_msg),
+            msg=template.format(script_error_msg, expected_error_message)
         )
 
     def tearDown(self) -> None:

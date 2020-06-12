@@ -170,7 +170,7 @@ def configure_logger(log_path: Union[str, None]):
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    # logging.basicConfig(level=logging.DEBUG)
     console_arguments = get_console_arguments()
     config_file_path = console_arguments.config
     configuration = get_configuration(config_file_path, default_config)
