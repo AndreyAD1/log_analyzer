@@ -173,7 +173,6 @@ def configure_logger(log_path: Union[str, None]):
 
 
 def main():
-    # logging.basicConfig(level=logging.DEBUG)
     console_arguments = get_console_arguments()
     config_file_path = console_arguments.config
     configuration = get_configuration(config_file_path, default_config)
@@ -191,7 +190,7 @@ def main():
         configuration['REPORT_DIR'],
     )
     if not log_properties:
-        sys.exit(f'No new log file is in {configuration["LOG_DIR"]}')
+        sys.exit(f'No new log file in {configuration["LOG_DIR"]}')
 
     statistics = get_statistics(
         log_properties.log_path,
