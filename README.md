@@ -4,7 +4,7 @@ This script parses logs of a web server, calculate statistics of request
 processing time and renders an HTML report file.
 
 # Project Goal
-The code is written for educational purposes. 
+The code was written for educational purposes. 
 Training course for Python developers: [OTUS.ru](https://otus.ru/lessons/razrabotchik-python/).
 
 # Getting Started
