@@ -17,6 +17,15 @@ Python v3.7 should be already installed. No third-party dependencies are require
 2. Configure the script setting the path to log files and report properties.
 There are to ways to configure the script: change the variable `default_config` 
 in the module `log_analyzer.py` or make your own config file.
+An example of configuration file:
+```json
+{
+    "REPORT_SIZE": 1000,
+    "REPORT_DIR": "./reports",
+    "LOG_DIR": "./log",
+    "SCRIPT_LOG_PATH": "script.log"
+}
+```
 
 To run script on Linux enter the command:
 ```bash
@@ -40,4 +49,4 @@ It calculates statistics of request processing time per each URL:
 + median processing time.
 
 Finally, the script renders an HTML report. A report template is located in
-'/data/report.html'.
+`/data/report.html`.
