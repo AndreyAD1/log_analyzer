@@ -128,9 +128,14 @@ def log_reader_generator(
             req_time_match = request_time_pattern.search(line)
             url = None if url_match is None else url_match.group()
             req_time = None if req_time_match is None else req_time_match.group()
+            try:
+                req_time = float(req_time)
+            except ValueError:
+                req_time = None
 
-            if not url or not req_time:
-                err_msg = 'Parsing error. Invalid line with number {}: {}'
+            if url is None or req_time is None:
+                err_msg = 'Parsing error. Invalid line number {}: {}'
                 logger.error(err_msg.format(read_line_number, line))
+                url = req_time = None
 
-            yield url, float(req_time)
+            yield url, req_time

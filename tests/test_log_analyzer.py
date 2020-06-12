@@ -11,6 +11,8 @@ test_module_path = os.path.abspath(getsourcefile(lambda: 0))
 test_dir_path = os.path.dirname(test_module_path)
 script_dir_path = os.path.dirname(test_dir_path)
 
+SCRIPT_PATH = os.path.join(script_dir_path, 'log_analyzer.py')
+
 TEST_DATA_DIR = os.path.join(test_dir_path, 'test_data')
 TEST_INPUT_LOGS_DIR = os.path.join(test_dir_path, 'logs')
 DEFAULT_CONFIG_PATH = os.path.join(script_dir_path, 'log_analyzer_config.json')
@@ -21,7 +23,7 @@ FIRST_LOG_NAME = 'nginx-access-ui.log-20170101'
 LATEST_LOG_NAME = 'nginx-access-ui.log-20190930'
 LATEST_PACKED_LOG_NAME = 'nginx-access-ui.log-20190930.gz'
 OTHER_SERVICE_LOG_NAME = 'other_service.log-20300101'
-INVALID_LOG_NAME = 'nginx-access-ui.log-19900101'
+INVALID_LOG_NAME = 'nginx-access-ui.log-20000101'
 
 CORRECT_REPORT_NAME = 'correct_report-2019.09.30.html'
 
@@ -29,7 +31,7 @@ CORRECT_REPORT_PATH = os.path.join(TEST_DATA_DIR, CORRECT_REPORT_NAME)
 EXPECTED_REPORT_NAME = 'report-2019.09.30.html'
 EXPECTED_REPORT_PATH = os.path.join(TEST_REPORTS_DIR, EXPECTED_REPORT_NAME)
 
-SHELL_ARGS = ['python', 'log_analyzer.py', '--config']
+SHELL_ARGS = ['python', SCRIPT_PATH, '--config']
 
 
 def create_test_dirs(*log_names):
@@ -149,10 +151,10 @@ class ParseErrors(unittest.TestCase):
             msg='The script has processed the log containing too many errors.'
         )
         script_error_msg = str(res.stderr)
-        expected_error_message = 'Can not parse the log file'
+        expected_error_message = 'Can not parse the log file '
         template = 'Invalid error message: {}. Expected message begins with {}'
         self.assertTrue(
-            re.match(expected_error_message, script_error_msg),
+            re.search(expected_error_message, script_error_msg),
             msg=template.format(script_error_msg, expected_error_message)
         )
 
