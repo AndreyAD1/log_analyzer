@@ -1,7 +1,7 @@
 """Functions to find and process a log file."""
 
 from collections import namedtuple
-from datetime import date
+from datetime import datetime, date
 import gzip
 import logging
 import os.path
@@ -19,7 +19,7 @@ LogProperties = namedtuple(
 
 def get_new_log_path_and_date(
         directory_path: str
-) -> Tuple[str, str] or Tuple[None, None]:
+) -> Tuple[str, date] or Tuple[None, None]:
     """
     Return log file path and its date if new log was found.
 
@@ -28,10 +28,10 @@ def get_new_log_path_and_date(
     (None, None).
     """
     log_pattern = re.compile(
-        '(?<=^nginx-access-ui\.log-)(20\d{2})(\d{2})(\d{2})(?=$|\.gz)'
+        '(?<=^nginx-access-ui\.log-)\d{8}(?=$|\.gz)'
     )
     newest_log_path = None
-    log_date = date(1, 1, 1)
+    log_datetime = datetime(1, 1, 1)
     for entry_name in os.listdir(directory_path):
         entry_path = os.path.join(directory_path, entry_name)
         entry_is_file = os.path.isfile(entry_path)
@@ -39,18 +39,18 @@ def get_new_log_path_and_date(
             log_date_match = log_pattern.search(entry_name)
             if not log_date_match:
                 continue
-            log_year = int(log_date_match.group(1))
-            log_month = int(log_date_match.group(2))
-            log_day = int(log_date_match.group(3))
+
+            log_date_string = log_date_match.group()
             try:
-                file_log_date = date(log_year, log_month, log_day)
+                file_log_date = datetime.strptime(log_date_string, '%Y%m%d')
             except ValueError:
                 continue
-            if file_log_date > log_date:
-                log_date = file_log_date
+
+            if file_log_date > log_datetime:
+                log_datetime = file_log_date
                 newest_log_path = entry_path
 
-    log_date = log_date if newest_log_path else None
+    log_date = log_datetime.date() if newest_log_path else None
     return newest_log_path, log_date
 
 
