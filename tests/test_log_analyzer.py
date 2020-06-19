@@ -143,7 +143,10 @@ class ParseErrors(unittest.TestCase):
         create_test_dirs(INVALID_LOG_NAME)
 
     def test_repeated_start(self):
-        res = subprocess.run([*SHELL_ARGS, CUSTOM_CONFIG_PATH], stderr=subprocess.PIPE)
+        res = subprocess.run(
+            [*SHELL_ARGS, CUSTOM_CONFIG_PATH],
+            stderr=subprocess.PIPE
+        )
         self.assertEqual(
             res.returncode,
             1,

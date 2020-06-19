@@ -60,6 +60,7 @@ def search_in_reports(report_dir_path: str, log_date: date) -> bool:
     :param log_date: a report date;
     :return: True if searched report is found in report directory.
     """
+    logging.info(f'Search for reports in {report_dir_path}.')
     expected_report_name = REPORT_NAME_TEMPLATE.format(
         str(log_date).replace("-", ".")
     )
@@ -76,11 +77,10 @@ def get_log_properties(
         report_dir_path: str,
 ) -> LogProperties or None:
     """
-    Return the properties of new log file or None if no log file found.
+    Return properties of new log file or None if no log file found.
 
     :param log_dir_path: a directory to search a log file;
     :param report_dir_path: a directory containing the script reports;
-    :param logger:
     :return: namedtuple containing a log file path, a log date and
     a log file extension. Function returns None if it found no valid log file
     or found a log file which had been already processed.
