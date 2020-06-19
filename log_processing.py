@@ -83,6 +83,7 @@ def log_reader_generator(
     log_file_reader = gzip.open if file_extension == '.gz' else open
     read_param = 'rt' if file_extension == '.gz' else 'r'
     with log_file_reader(log_path, read_param) as log_file:
+        successful_parsing = False
         for line in log_file:
             read_line_number += 1
             url_match = url_pattern.search(line)
@@ -98,5 +99,10 @@ def log_reader_generator(
                 err_msg = 'Parsing error. Invalid line number {}: {}'
                 logger.error(err_msg.format(read_line_number, line))
                 url = req_time = None
+            else:
+                successful_parsing = True
 
             yield url, req_time
+
+        if not successful_parsing:
+            raise Exception(f'Can not parse any request info in {log_path}')

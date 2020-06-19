@@ -95,10 +95,6 @@ def get_statistics(
             statistics_per_url[url]['time_med'] = updated_median
             logger.debug(f'Successfully processed the row {log_note_number}')
 
-    if not any([log_note_number, total_request_number, total_request_time]):
-        logger.error(f'Can not parse any request info in {log_path}')
-        return
-
     error_ratio = error_number / log_note_number
     too_many_errors = error_ratio > parse_error_threshold
     if too_many_errors:
