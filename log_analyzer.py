@@ -8,6 +8,7 @@
 #                     '$request_time';
 
 import argparse
+from collections import namedtuple
 import json
 from inspect import getsourcefile
 import logging
@@ -20,7 +21,7 @@ from typing import Any, Mapping, Union
 from calculations import get_statistics
 from constants import DEFAULT_CONFIG_PATH, PARSE_ERROR_THRESHOLD
 from constants import REPORT_NAME_TEMPLATE
-from log_processing import get_log_properties
+from log_processing import get_new_log_path_and_date, search_in_reports
 
 default_config = {
     'REPORT_SIZE': 1000,
@@ -28,6 +29,11 @@ default_config = {
     'LOG_DIR': './log',
     'SCRIPT_LOG_PATH': 'script.log'
 }
+
+LogProperties = namedtuple(
+    'LogProperties',
+    ['log_path', 'log_date', 'file_extension']
+)
 
 
 def get_console_arguments() -> argparse.Namespace:
@@ -147,12 +153,18 @@ def main():
         except OSError:
             sys.exit(f'Can not create the report directory {report_dir_path}')
 
-    log_properties = get_log_properties(
-        configuration['LOG_DIR'],
-        report_dir_path,
-    )
-    if not log_properties:
-        sys.exit(f'No new log file in {configuration["LOG_DIR"]}')
+    log_dir_path = configuration["LOG_DIR"]
+    newest_log_path, log_date = get_new_log_path_and_date(log_dir_path)
+    if not newest_log_path:
+        sys.exit(f'Do not find a log file in {log_dir_path}')
+
+    report_is_ready = search_in_reports(report_dir_path, log_date)
+    if report_is_ready:
+        sys.exit(f'Do not find an unprocessed log file in {report_dir_path}')
+
+    logging.info(f'Find the log to process {newest_log_path}')
+    _, log_ext = os.path.splitext(newest_log_path)
+    log_properties = LogProperties(newest_log_path, log_date, log_ext)
 
     statistics = get_statistics(
         log_properties.log_path,

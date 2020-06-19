@@ -1,6 +1,5 @@
 """Functions to find and process a log file."""
 
-from collections import namedtuple
 from datetime import datetime, date
 import gzip
 import logging
@@ -9,12 +8,6 @@ import re
 from typing import Generator, Tuple
 
 from constants import REPORT_NAME_TEMPLATE
-
-
-LogProperties = namedtuple(
-    'LogProperties',
-    ['log_path', 'log_date', 'file_extension']
-)
 
 
 def get_new_log_path_and_date(
@@ -67,41 +60,8 @@ def search_in_reports(report_dir_path: str, log_date: date) -> bool:
         str(log_date).replace("-", ".")
     )
     expected_report_path = os.path.join(report_dir_path, expected_report_name)
-    path_exists = os.path.exists(expected_report_path)
-    report_is_ready = False
-    if path_exists:
-        report_is_ready = os.path.isfile(expected_report_path)
+    report_is_ready = os.path.exists(expected_report_path)
     return report_is_ready
-
-
-def get_log_properties(
-        log_dir_path: str,
-        report_dir_path: str,
-) -> LogProperties or None:
-    """
-    Return properties of new log file or None if no log file found.
-
-    :param log_dir_path: a directory to search a log file;
-    :param report_dir_path: a directory containing the script reports;
-    :return: namedtuple containing a log file path, a log date and
-    a log file extension. Function returns None if it found no valid log file
-    or found a log file which had been already processed.
-    """
-    newest_log_path, log_date = get_new_log_path_and_date(log_dir_path)
-    report_is_ready = False
-    if newest_log_path:
-        report_is_ready = search_in_reports(report_dir_path, log_date)
-
-    unprocessed_log_is_found = newest_log_path and not report_is_ready
-    if unprocessed_log_is_found:
-        logging.info(f'Find the log to process {newest_log_path}')
-        _, log_ext = os.path.splitext(newest_log_path)
-        log_properties = LogProperties(newest_log_path, log_date, log_ext)
-    else:
-        logging.error(f'Do not find a suitable log file in {log_dir_path}.')
-        log_properties = None
-
-    return log_properties
 
 
 def log_reader_generator(
