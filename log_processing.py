@@ -81,7 +81,12 @@ def log_reader_generator(
     request_time_pattern = re.compile('\S+$')
     log_file_reader = gzip.open if file_extension == '.gz' else open
     read_param = 'rt' if file_extension == '.gz' else 'r'
-    with log_file_reader(log_path, read_param) as log_file:
+    with log_file_reader(
+            log_path,
+            read_param,
+            encoding='utf_8',
+            errors='ignore'
+    ) as log_file:
         successful_parsing = False
         for line in log_file:
             read_line_number += 1
