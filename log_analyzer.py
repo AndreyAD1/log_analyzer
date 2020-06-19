@@ -69,7 +69,7 @@ def get_configuration(
             with open(input_filepath) as config_file:
                 try:
                     custom_configuration = json.load(config_file)
-                except json.JSONDecodeError as ex:
+                except json.JSONDecodeError:
                     err_msg = 'Can not parse JSON in the configuration file {}'
                     logging.exception(err_msg.format(input_filepath))
                     return None
