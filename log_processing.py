@@ -32,9 +32,11 @@ def get_new_log_path_and_date(
     )
     newest_log_path = None
     log_date = date(1, 1, 1)
-    for path, _, file_names in os.walk(directory_path):
-        for file_name in file_names:
-            log_date_match = log_pattern.search(file_name)
+    for entry_name in os.listdir(directory_path):
+        entry_path = os.path.join(directory_path, entry_name)
+        entry_is_file = os.path.isfile(entry_path)
+        if entry_is_file:
+            log_date_match = log_pattern.search(entry_name)
             if not log_date_match:
                 continue
             log_year = int(log_date_match.group(1))
@@ -46,7 +48,7 @@ def get_new_log_path_and_date(
                 continue
             if file_log_date > log_date:
                 log_date = file_log_date
-                newest_log_path = os.path.join(path, file_name)
+                newest_log_path = entry_path
 
     log_date = log_date if newest_log_path else None
     return newest_log_path, log_date
@@ -85,7 +87,6 @@ def get_log_properties(
     a log file extension. Function returns None if it found no valid log file
     or found a log file which had been already processed.
     """
-    logger = logging.getLogger()
     newest_log_path, log_date = get_new_log_path_and_date(log_dir_path)
     report_is_ready = False
     if newest_log_path:
@@ -93,11 +94,11 @@ def get_log_properties(
 
     unprocessed_log_is_found = newest_log_path and not report_is_ready
     if unprocessed_log_is_found:
-        logger.info(f'Find the log to process {newest_log_path}')
+        logging.info(f'Find the log to process {newest_log_path}')
         _, log_ext = os.path.splitext(newest_log_path)
         log_properties = LogProperties(newest_log_path, log_date, log_ext)
     else:
-        logger.error(f'Do not find a suitable log file in {log_dir_path}.')
+        logging.error(f'Do not find a suitable log file in {log_dir_path}.')
         log_properties = None
 
     return log_properties
