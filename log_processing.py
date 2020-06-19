@@ -76,7 +76,6 @@ def log_reader_generator(
     Valid values: empty string or 'gz';
     :return: url and request processing duration.
     """
-    logger = logging.getLogger()
     read_line_number = 0
     url_pattern = re.compile('(?<=\s)(\S+)(?= HTTP/1.)')
     request_time_pattern = re.compile('\S+$')
@@ -97,7 +96,7 @@ def log_reader_generator(
 
             if url is None or req_time is None:
                 err_msg = 'Parsing error. Invalid line number {}: {}'
-                logger.error(err_msg.format(read_line_number, line))
+                logging.error(err_msg.format(read_line_number, line))
                 url = req_time = None
             else:
                 successful_parsing = True

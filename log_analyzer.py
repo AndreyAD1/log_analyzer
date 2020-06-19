@@ -97,8 +97,6 @@ def render_report(
     :param log_date: a report date;
     :param report_size: a number of rows which report should contain;
     """
-    logger = logging.getLogger()
-    assert report_size > 0
     dict_to_report = {'table_json': statistics[:report_size]}
     script_dir = os.path.dirname(os.path.abspath(getsourcefile(lambda: 0)))
     report_template_path = os.path.join(script_dir, 'data', 'report.html')
@@ -113,7 +111,7 @@ def render_report(
     report_file_path = os.path.join(report_dir, report_file_name)
     with open(report_file_path, 'w') as report_file:
         report_file.write(report)
-    logger.info(f'Successfully render the report: {report_file_path}')
+    logging.info(f'Successfully render the report: {report_file_path}')
 
 
 def configure_logger(log_path: Union[str, None]):
