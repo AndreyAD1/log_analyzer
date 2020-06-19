@@ -38,7 +38,6 @@ def get_console_arguments() -> argparse.Namespace:
         '--config',
         nargs='?',
         const=DEFAULT_CONFIG_PATH,
-        default=None,
         help=f'A path to a script configuration file. {default_config_help}',
         type=str
     )
@@ -180,7 +179,6 @@ def main():
         sys.exit(f'Invalid configuration file {config_file_path}')
 
     configure_logger(configuration.get('SCRIPT_LOG_PATH'))
-
     error = verify_configuration(configuration)
     if error:
         sys.exit(error)

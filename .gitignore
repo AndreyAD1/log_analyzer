@@ -11,5 +11,5 @@ log
 *.log
 # Report files
 report-*
-# Configuration file
-config.json
+# Configuration files
+*.json
